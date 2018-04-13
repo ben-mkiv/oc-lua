@@ -96,6 +96,8 @@ local TOP = { width = HOLOW, height = HOLOW, depth = HOLOH }
 local FRONT = { width = HOLOW, height = HOLOH, depth = HOLOW }
 local SIDE = { width = HOLOW, height = HOLOH, depth = HOLOW }
 
+local fastRendering = true
+
 -- Interface variables --
 local buttons = {}
 local textboxes = {}
@@ -341,6 +343,45 @@ local function load(filename, compressed)
   end
 end
 
+function renderFillData(data)
+  local p = trytofind('hologram')
+  for i=1,#data do
+    p.fill(data[i].x, data[i].z, data[i].min, data[i].max, data[i].color)
+  end  
+end
+
+function convert2fill()
+  local rows = {}
+  for x=1,HOLOW do
+    for z=1,HOLOW do
+      local stroke = { start = 0, color = 0 }
+      for y=1,HOLOH do
+        if get(x, y, z) ~= 0 then
+          if stroke.start == 0 then
+            stroke.start = y
+            stroke.color = get(x, y, z)
+          elseif stroke.color ~= get(x, y, z) then
+            table.insert(rows, { x = x, z = z, min = stroke.start, max = y, color = stroke.color })
+            stroke = { start = 0, color = 0 }
+          end
+        else
+          if stroke.start ~= 0 then
+            table.insert(rows, { x = x, z = z, min = stroke.start, max = y, color = stroke.color })
+          end
+          stroke = { start = 0, color = 0 }
+        end
+      end
+      if stroke.start ~= 0 then
+        table.insert(rows, { x = x, z = z, min = stroke.start, max = HOLOH, color = stroke.color })
+      end
+  end end
+
+  local cf = io.open("/home/holoedit.fillData", "w")
+  cf:write(require("serialization").serialize(rows))
+  cf:close()
+
+  return rows
+end
 
 -- ============================================== B U T T O N S ============================================== --
 local Button = {}
@@ -917,6 +958,11 @@ local function setFrontView() setView(FRONT) end
 local function setSideView() setView(SIDE) end
 
 local function drawHologram()
+  if fastRendering then
+    renderFillData(convert2fill())
+    return
+  end
+
   -- check for a projector availability
   local projector = trytofind('hologram')
   if projector ~= nil then
