@@ -1,4 +1,4 @@
--- generic installer
+-- generic hazeUI installer
 fs = require("filesystem")
 
 files = {

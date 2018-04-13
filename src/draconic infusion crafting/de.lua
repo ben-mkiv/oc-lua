@@ -16,6 +16,7 @@ inventory = {}
 inventoryAll = {} 
 
 config = {}
+config.target = "actuallyadditions"
 config.devices =  {}
 		
 config.devices.redstone = { 
@@ -32,7 +33,8 @@ config.devices.transposer = {
 	
 config.devices.ae2 = { 
 	controller = false, 
-	interface = {} }
+	interface = {},
+	exportbus = {} }
 
 require "deH"
 
@@ -64,14 +66,16 @@ gui:setElement({index = titleBar, cb = "drawMain"})
 
 event.listen("touch", touchEventHandler)
 
-for address,type in pairs(component.list("redstone")) do 
+for address,type in pairs(component.list("redstone")) do
 	if config.devices.redstone.crafter.address == address and config.devices.redstone.crafter.side ~= false then
-		print("device " .. address .. " already configured as crafter redstone")		
+		print("device " .. address .. " already configured as crafter redstone")
 	elseif config.devices.redstone.status.address == address and config.devices.redstone.status.side ~= false then
 		print("device " .. address .. " already configured as comparator redstone")
 	else
+		config.devices.redstone.status.address = address
+		config.devices.redstone.crafter.address = address
 		configureRedstoneDevice(address)
-	end	
+	end
 end
 
 for address,type in pairs(component.list("transposer")) do 
@@ -85,25 +89,21 @@ for address,type in pairs(component.list("transposer")) do
 	end	
 end
 
+for address,type in pairs(component.list("me_network")) do
+	print("[i] found me network controller "..address)
+	config.devices.ae2.controller = component.proxy(address)
+end
 
---me_controller = false
---for address,type in pairs(component.list("me_network")) do 
---	if not component.proxy(address).getInterfaceConfiguration then
---		print("[i] found me network controller "..address)	
---		if me_controller == false then		
---			print("[+] adding me network controller")
---			me_controller = component.proxy(address)
---		else
---			print("[!] ... skipping, controller already set!")			
---		end
---	else
---		print("[i] found me network interface "..address)
---	end
---end
+for address,type in pairs(component.list("me_exportbus")) do
+	print("[+] adding me exportbus")
+	config.devices.ae2.exportbus[#config.devices.ae2.exportbus+1] = {}
+	config.devices.ae2.exportbus[#config.devices.ae2.exportbus].address = address
+end
 
 os.sleep(3)
 
 saveConfig()
+
 gui:cleanup()
 gui:loadRecipesConfig()
 gui:drawMain()

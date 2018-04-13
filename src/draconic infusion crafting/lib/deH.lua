@@ -6,38 +6,31 @@ function hazeUI:drawTools()
 		end)
 	self:addButton(32, 9, 20, 2, "sync inventory", "tools", 0xFFB000, 0x282828, "left", "readInventory")
 	self:addButton(32, 12, 20, 2, "cleanup", "tools", 0xFFB000, 0x282828, "left", "cleanup")
-	
-	self:addButton(32, 15, 20, 2, "generate upgrade recipes", "tools", 0xFFB000, 0x282828, "left", "generateUpgradeRecipes")
-
 
 	self:addButton(2, 23, 20, 3, "back", "tools", 0xFFA200, 0x282828, "center", "drawMain")
 	
 	self:drawScreen("tools")	
 end
 
-
-function hazeUI:generateUpgradeRecipes()
-	upgradeRecipes = {
-	Basic = { },
-	Wyvern = { },
-	Draconic = { },
-	Chaotic = { }
-	
-	}
-	
-	
-end
-
 function hazeUI:drawMain()
 	self:flushElements(true)
-	self:setElement({index = titleBar, text = "draconic infusion crafting"})
-	
+
+	if config.target == "draconicevolution" then
+		self:setElement({index = titleBar, text = "draconic infusion crafting"})
+	elseif config.target == "actuallyadditions" then
+		self:setElement({index = titleBar, text = "actually additions empowerer"})
+	else
+		self:setElement({index = titleBar, text = "what?"})
+	end
+
 	self:addButton(2, 3, 20, 2, "tools", "main", 0xFFB000, 0x282828, "left", "drawTools")
-		
-	self:addButton(2, 12, 20, 1, "upgrades", "main", 0x282828, 0xFFB000, "left")
-	for i=1,#upgradeKeys do
-		self:addButton(2, 12+i, 20, 1, upgradeKeys[i].nameShort, "main", 0xFFAD00, 0x4A4A4A, "left", "showUpgrade", i) end
-		
+
+	if config.target == "draconicevolution" then
+		self:addButton(2, 12, 20, 1, "upgrades", "main", 0x282828, 0xFFB000, "left")
+		for i=1,#upgradeKeys do
+			self:addButton(2, 12+i, 20, 1, upgradeKeys[i].nameShort, "main", 0xFFAD00, 0x4A4A4A, "left", "showUpgrade", i) end
+	end
+
 	self:addButton(40, 3, 40, 1, "crafting recipes", "main", 0xFFB000, 0x282828, "left")
 	for i=1,#recipes do		
 		local bgColor = 0xFFB000
@@ -47,8 +40,6 @@ function hazeUI:drawMain()
 	
 	self:drawScreen("main")		
 end
-
-
 
 function hazeUI:readRecipe()
 	self:drawScreen("clear")
@@ -93,8 +84,9 @@ function hazeUI:loadRecipesConfig()
   local cf = io.open("/etc/de_infusioncrafting.conf", "r")
   local serData = cf:read("*a")
   cf:close()
-  recipes = ser.unserialize(serData)  
-  
+  recipes = ser.unserialize(serData)
+  sortRecipes()
+
   if not fs.exists("/etc/de_upgradeRecipes.conf") then
 	local cf = io.open("/etc/de_upgradeRecipes.conf", "w")
 	cf:write(ser.serialize(upgradeRecipes))
@@ -104,7 +96,7 @@ function hazeUI:loadRecipesConfig()
   local cf = io.open("/etc/de_upgradeRecipes.conf", "r")
   local serData = cf:read("*a")
   cf:close()
-  upgradeRecipes = ser.unserialize(serData)  
+  upgradeRecipes = ser.unserialize(serData)
   self:compressRecipes()
 end
 
@@ -136,14 +128,13 @@ function saveConfig()
 	cf:close()
 end
 
-
 function hazeUI:craftingStatus()
 	local rs = component.proxy(config.devices.redstone.status.address)
-	local status = rs.getInput(config.devices.redstone.status.side)
+	local status = rs.getComparatorInput(config.devices.redstone.status.side)
 	local oldStatus = -1
 	
 	while status < 15 do
-		status = rs.getInput(config.devices.redstone.status.side)
+		status = rs.getComparatorInput(config.devices.redstone.status.side)
 		if status ~= oldStatus then
 			oldStatus = status
 			self:drawStatusbar(5, 5, 40, 1, 15, status, "crafting...") end
@@ -296,7 +287,10 @@ function hazeUI:readInventory()
 			   table.insert(upgradeKeys, tmp)				
 			else
 				table.insert(inventoryAll, tmp)
-			end end end	
+			end end end
+
+	sortUpgradeKeys()
+
 	self:compressInventory()
 	
 	self:drawMain()
@@ -489,8 +483,9 @@ end
 
 function hazeUI:cleanup()
 	local crafter = component.proxy(config.devices.transposer.crafter.address)
+
 	--crafter output to output
-	if crafter.getStackInSlot(config.devices.transposer.crafter.sideCrafter, 2) ~= nil then 
+	if crafter.getInventorySize(config.devices.transposer.crafter.sideCrafter) > 1 and crafter.getStackInSlot(config.devices.transposer.crafter.sideCrafter, 2) ~= nil then
 		crafter.transferItem(config.devices.transposer.crafter.sideCrafter, config.devices.transposer.crafter.sideInput, 64, 2)
 	end
 	--crafter input to inputchest
@@ -515,9 +510,12 @@ function setRedstoneDevice(data)
 end
 
 function setRedstoneSide(data)
+	-- dont make this an elseif, as this SHOULD set both if theres only one redstone device
 	if config.devices.redstone.crafter.address == data.e.address then
 		config.devices.redstone.crafter.side = (data.value - 1)
-	elseif config.devices.redstone.status.address == data.e.address then
+	end
+
+	if config.devices.redstone.status.address == data.e.address then
 		config.devices.redstone.status.side = (data.value - 1)
 	end
 		
@@ -528,12 +526,12 @@ function configureRedstoneDevice(address)
 	gui:addButton(2, 3, 70, 3, "found redstone interface "..address, "initRedstone", 0x282828, 0xFFA200, "left")
 	gui:drawScreen("initRedstone")
 		
-	redstoneInitDone = false
-	gui:list("set redstone mode for "..address, "please select the connected device from the list", {"crafter", "comparator"}, { f = setRedstoneDevice, p = { address = address }}, nil, nil)
-	while not redstoneInitDone do os.sleep(0.1); end	
+	--redstoneInitDone = false
+	--gui:list("set redstone mode for "..address, "please select the connected device from the list", {"crafter", "comparator"}, { f = setRedstoneDevice, p = { address = address }}, nil, nil)
+	--while not redstoneInitDone do os.sleep(0.1); end
 				
 	redstoneInitDone = false
-	gui:list("set connected side for "..address, "please select the connected side from the list", {"bottom", "top", "north", "south", "west", "east"}, { f = setRedstoneSide, p = { address = address }}, nil, nil)
+	gui:list("set connected side for "..address, "please select the connected redstone side from the list", {"bottom", "top", "north", "south", "west", "east"}, { f = setRedstoneSide, p = { address = address }}, nil, nil)
 	while not redstoneInitDone do os.sleep(0.1); end	
 end
 
@@ -554,7 +552,8 @@ function setTransposerDevice(data)
 	if data.label == "crafter" then	
 		config.devices.transposer.crafter.address = data.e.address
 	elseif data.label == "injector" then
-		table.insert(config.devices.transposer.injectors, { address = data.e.address, sideInjector = sides.bottom, sideInventory = sides.top })		
+		if config.target == "actuallyadditions" then table.insert(config.devices.transposer.injectors, { address = data.e.address, sideInjector = sides.top, sideInventory = sides.bottom })
+		else table.insert(config.devices.transposer.injectors, { address = data.e.address, sideInjector = sides.bottom, sideInventory = sides.top }) end
 	end	
 	
 	transposerInitDone = data.label
@@ -596,19 +595,23 @@ function configureTransposerDevice(address)
 	
 	local text = "no idea... "..minInv.."/"..maxInv
 
+	local preSelect
+
 	if minInv == 2 then
 		text = "crafter?"
+		preSelect = "crafter"
 	elseif minInv == 1 then
 		text = "injector?"
+		preSelect = "injector"
 	end	
 	  
 	transposerInitDone = false
-	gui:list("set mode for transposer "..address, text, {"crafter", "injector"}, { f = setTransposerDevice, p = { address = address }}, nil, nil)
+	gui:list("set mode for transposer "..address, text, {"crafter", "injector"}, { f = setTransposerDevice, p = { address = address }}, nil, preSelect)
 	while transposerInitDone == false do os.sleep(0.1); end	
 				  
 	if transposerInitDone == "crafter" then
 		transposerInitDone = false
-		gui:list("set side for crafter", address, {"bottom", "top", "north", "south", "west", "east"}, { f = setTransposerCrafter, p = { address = address }}, nil, nil)
+		gui:list("set side for crafter", address, {"bottom", "top", "north", "south", "west", "east"}, { f = setTransposerCrafter, p = { address = address }}, nil, "top")
 		while transposerInitDone == false do os.sleep(0.1); end
 		
 		transposerInitDone = false
@@ -621,4 +624,25 @@ function configureTransposerDevice(address)
 	end
 	
 	os.sleep(0)
-end 
+end
+
+function compareOutputName(a, b)
+	return a.output.label < b.output.label
+end
+
+function sortRecipes()
+	if #recipes > 1 then
+		table.sort(recipes, compareOutputName)
+	end
+end
+
+
+function compareUpgradeKey(a, b)
+	return a.label < b.label
+end
+
+function sortUpgradeKeys()
+	if #upgradeKeys > 1 then
+		table.sort(upgradeKeys, compareUpgradeKey)
+	end
+end

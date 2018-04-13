@@ -1,9 +1,7 @@
--- draconic evolution crafting
+-- generic installer
 fs = require("filesystem")
 
 files = {
-    
-
     { pastebin = "QPZZrQdS", path = "/usr/lib", filename = "borders.lua", label = "border/frame lib" },
     { pastebin = "9Ujn0eEn", path = "/usr/lib", filename = "hazeUI.lua", label = "hazeUI lib" }
 }

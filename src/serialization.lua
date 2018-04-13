@@ -1,3 +1,7 @@
+-- this is from openComputers openOS
+-- autors: quite some... look them up on github!
+-- https://github.com/MightyPirates/OpenComputers/blob/master-MC1.12/src/main/resources/assets/opencomputers/loot/openos/lib/serialization.lua
+
 local serialization = {}
 
 -- delay loaded tables fail to deserialize cross [C] boundaries (such as when having to read files that cause yields)

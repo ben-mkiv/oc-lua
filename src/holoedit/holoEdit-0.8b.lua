@@ -1,5 +1,6 @@
 --       Hologram Editor v0.7.1-b1
 -- 2017 (c) Totoro (aka MoonlightOwl)
+-- improved by ben_mkiv ;)
 --         computercraft.ru
 
 local unicode = require('unicode')
@@ -141,7 +142,7 @@ local function set(x, y, z, value)
   holo[x][y][z] = value
 end
 local function get(x, y, z)
-  if holo[x] ~= nil and holo[x][y] ~= nil and holo[x][y][z] ~= nil then 
+  if holo[x] ~= nil and holo[x][y] ~= nil and holo[x][y][z] ~= nil then
     return holo[x][y][z]
   else
     return 0
@@ -149,7 +150,7 @@ local function get(x, y, z)
 end
 
 local function getProjector(x, y, z)
-   return require("component").hologram.get(x, y, z)
+  return require("component").hologram.get(x, y, z)
 end
 
 local writer = {}
@@ -232,6 +233,11 @@ local function save(filename, compressed)
     end
     writer:finalize()
     file:close()
+
+    local cf = io.open(filename..".raw", "w")
+    cf:write(require("serialization").serialize(convert2fill()))
+    cf:close()
+
     return true
   else
     return false, filename..": "..loc.CANNOT_SAVE_ERROR
@@ -244,7 +250,7 @@ function reader:init(file)
   self.file = file
 end
 function reader:read()
-  if #self.buffer == 0 then 
+  if #self.buffer == 0 then
     if not self:fetch() then return nil end
   end
   -- get the last symbol from the buffer
@@ -278,8 +284,8 @@ local function load(filename, compressed)
           colortable[i][c] = string.byte(file:read(1))
         end
         setHexColor(i,colortable[i][1],
-                      colortable[i][2],
-                      colortable[i][3])
+          colortable[i][2],
+          colortable[i][3])
       end
       -- loading the data
       holo = {}
@@ -292,7 +298,7 @@ local function load(filename, compressed)
           local len = 1
           while true do           -- reading binary length value
             local b = reader:read()
-            if b == nil then 
+            if b == nil then
               file:close()
               if a == 0 then return true
               else return false, filename..": "..loc.FORMAT_READING_ERROR end
@@ -318,7 +324,7 @@ local function load(filename, compressed)
                 y = 1
               end
               z = 1
-            end  
+            end
           end
         end
       else                        -- reading uncompressed data
@@ -326,7 +332,7 @@ local function load(filename, compressed)
           for y=1, HOLOH do
             for z=1, HOLOW do
               local a = reader:read()
-              if a ~= 0 and a ~= nil then 
+              if a ~= 0 and a ~= nil then
                 set(x,y,z, a)
               end
             end
@@ -345,13 +351,13 @@ end
 
 function renderFillData(data)
   local p = trytofind('hologram')
-  for i=1,#data do
-    p.fill(data[i].x, data[i].z, data[i].min, data[i].max, data[i].color)
-  end  
+  for color=1,#data do for i=1,#data[color] do
+    p.fill(data[color][i].x, data[color][i].z, data[color][i].min, data[color][i].max, color)
+  end end
 end
 
 function convert2fill()
-  local rows = {}
+  local rows = { {}, {}, {} }
   for x=1,HOLOW do
     for z=1,HOLOW do
       local stroke = { start = 0, color = 0 }
@@ -361,24 +367,20 @@ function convert2fill()
             stroke.start = y
             stroke.color = get(x, y, z)
           elseif stroke.color ~= get(x, y, z) then
-            table.insert(rows, { x = x, z = z, min = stroke.start, max = y, color = stroke.color })
+            table.insert(rows[stroke.color], { x = x, z = z, min = stroke.start, max = y })
             stroke = { start = 0, color = 0 }
           end
         else
           if stroke.start ~= 0 then
-            table.insert(rows, { x = x, z = z, min = stroke.start, max = y, color = stroke.color })
+            table.insert(rows[stroke.color], { x = x, z = z, min = stroke.start, max = y-1 })
           end
           stroke = { start = 0, color = 0 }
         end
       end
       if stroke.start ~= 0 then
-        table.insert(rows, { x = x, z = z, min = stroke.start, max = HOLOH, color = stroke.color })
+        table.insert(rows[stroke.color], { x = x, z = z, min = stroke.start, max = HOLOH })
       end
-  end end
-
-  local cf = io.open("/home/holoedit.fillData", "w")
-  cf:write(require("serialization").serialize(rows))
-  cf:close()
+    end end
 
   return rows
 end
@@ -388,10 +390,10 @@ local Button = {}
 Button.__index = Button
 function Button.new(func, x, y, text, fore, back, width, nu)
   self = setmetatable({}, Button)
- 
+
   self.form = '[ '
   if width == nil then width = 0
-    else width = (width - unicode.len(text))-4 end
+  else width = (width - unicode.len(text))-4 end
   for i=1, math.floor(width/2) do
     self.form = self.form.. ' '
   end
@@ -400,16 +402,16 @@ function Button.new(func, x, y, text, fore, back, width, nu)
     self.form = self.form.. ' '
   end
   self.form = self.form..' ]'
- 
+
   self.func = func
- 
+
   self.x = math.floor(x); self.y = math.floor(y)
   self.fore = fore
   self.back = back
   self.visible = true
 
   self.notupdate = nu or false
- 
+
   return self
 end
 function Button:draw(fore, back)
@@ -538,7 +540,7 @@ local function textboxNew(textboxes, validator, func, x, y, width, value, defVal
   textbox = Textbox.new(validator, func, x, y, width, value, defValue)
   table.insert(textboxes, textbox)
   return textbox
-end 
+end
 local function textboxesDraw(textboxes)
   for i=1, #textboxes do
     textboxes[i]:draw()
@@ -657,20 +659,20 @@ local function drawPaletteFrame()
 end
 -- draw and move palette selector
 local function drawColorCursor(force)
-  if force or brush.moving then 
+  if force or brush.moving then
     foreground(color.fore)
     background(color.back)
     if FULLSIZE then gpu.set(MENUX+2+brush.cx, colorCursorY, "      ")
     else gpu.set(MENUX+2+brush.cx, colorCursorY, "-----") end
-    
+
     if brush.moving then
       if brush.x ~= brush.color * colorCursorWidth then brush.x = brush.color*colorCursorWidth end
       if brush.cx < brush.x then brush.cx = brush.cx + 1
       elseif brush.cx > brush.x then brush.cx = brush.cx - 1
       else brush.moving = false end
     end
-    
-    if FULLSIZE then 
+
+    if FULLSIZE then
       background(color.lightgray)
       gpu.set(MENUX+2+brush.cx, colorCursorY, ":^^^^:")
     else gpu.set(MENUX+2+brush.cx, colorCursorY, ":vvv:") end
@@ -700,15 +702,15 @@ local function mainScreen()
   frame(1,1, WIDTH, HEIGHT, "{ Hologram Editor }", not FULLSIZE)
   -- "canvas"
   drawGrid(GRIDX, GRIDY)
-  
+
   drawPaletteFrame()
   drawLayerFrame()
   drawUtilsFrame()
-  
+
   drawColorCursor(true)
   buttonsDraw(buttons)
   textboxesDraw(textboxes)
-  
+
   -- "about"
   foreground(color.info)
   background(color.gray)
@@ -833,9 +835,9 @@ local function nextGhost()
       ghost_layer = layer + 1
     else ghost_layer = view.depth end
     drawLayer()
-  else  
+  else
     if ghost_layer < view.depth then
-      ghost_layer = ghost_layer + 1 
+      ghost_layer = ghost_layer + 1
       drawLayer()
     end
   end
@@ -874,7 +876,7 @@ local function moveGhost()
 end
 
 local function nextLayer()
-  if layer < view.depth then 
+  if layer < view.depth then
     layer = layer + 1
     tb_layer.value = layer
     tb_layer:draw()
@@ -883,8 +885,8 @@ local function nextLayer()
   end
 end
 local function prevLayer()
-  if layer > 1 then 
-    layer = layer - 1 
+  if layer > 1 then
+    layer = layer - 1
     tb_layer.value = layer
     tb_layer:draw()
     moveGhost()
@@ -913,8 +915,8 @@ local function changeColor(rgb, value)
   -- saving data to the table
   colortable[brush.color][rgb] = n
   setHexColor(brush.color, colortable[brush.color][1],
-                           colortable[brush.color][2],
-                           colortable[brush.color][3])
+    colortable[brush.color][2],
+    colortable[brush.color][3])
   -- refresh colors palette
   drawPaletteFrame()
   return true
@@ -957,12 +959,25 @@ local function setTopView(norefresh) setView(TOP, norefresh) end
 local function setFrontView() setView(FRONT) end
 local function setSideView() setView(SIDE) end
 
-local function drawHologram()
-  if fastRendering then
-    renderFillData(convert2fill())
-    return
+local function renderHologram(projector)
+  -- send the data
+  for x=1, HOLOW do
+    for y=1, HOLOH do
+      for z=1, HOLOW do
+        n = get(x,y,z)
+        if n ~= 0 then
+          if depth == 2 then
+            projector.set(x,y,z,n)
+          else
+            projector.set(x,y,z,1)
+          end
+        end
+      end
+    end
   end
+end
 
+local function drawHologram()
   -- check for a projector availability
   local projector = trytofind('hologram')
   if projector ~= nil then
@@ -977,20 +992,11 @@ local function drawHologram()
     else
       projector.setPaletteColor(1, hexcolortable[1])
     end
-    -- send the data
-    for x=1, HOLOW do
-      for y=1, HOLOH do
-        for z=1, HOLOW do
-          n = get(x,y,z)
-          if n ~= 0 then
-            if depth == 2 then
-              projector.set(x,y,z,n)
-            else
-              projector.set(x,y,z,1)
-            end
-          end
-        end
-      end      
+
+    if fastRendering then
+      renderFillData(convert2fill())
+    else
+      renderHologram(projector)
     end
   else
     showMessage(loc.PROJECTOR_UNAVAILABLE_MESSAGE, loc.ERROR_CAPTION, color.error)
@@ -1060,47 +1066,47 @@ local function loadHologram()
 end
 
 function dec2rgb(col)
-	local rgb = {}
-	local bit32 = require "bit32"
-	
-	rgb[1] = bit32.band(bit32.lshift(col, 16), 255)
-	rgb[2] = bit32.band(bit32.lshift(col, 8), 255)
-	rgb[3] = bit32.band(col, 255)
-	
-	return rgb
+  local rgb = {}
+  local bit32 = require "bit32"
+
+  rgb[1] = bit32.band(bit32.lshift(col, 16), 255)
+  rgb[2] = bit32.band(bit32.lshift(col, 8), 255)
+  rgb[3] = bit32.band(col, 255)
+
+  return rgb
 end
 
 
 local function getHologram()
   -- show a warning
-    showMessage(loc.LOADING_MESSAGE, loc.WARNING_CAPTION, color.gold)
-    -- load
-    local ok, message = nil, nil
-         
-    holo = {}
-	for x=1, HOLOW do
-       for y=1, HOLOH do
-          for z=1, HOLOW do
-            set(x, y, z, getProjector(x, y, z))
-          end
-       end
+  showMessage(loc.LOADING_MESSAGE, loc.WARNING_CAPTION, color.gold)
+  -- load
+  local ok, message = nil, nil
+
+  holo = {}
+  for x=1, HOLOW do
+    for y=1, HOLOH do
+      for z=1, HOLOW do
+        set(x, y, z, getProjector(x, y, z))
+      end
     end
-    
-    local projector = trytofind('hologram')
-	if projector ~= nil then
-		-- refresh textboxes
-		tb_red.value = dec2rgb(projector.getPaletteColor(1))
-		tb_green.value = dec2rgb(projector.getPaletteColor(2))
-		tb_blue.value = dec2rgb(projector.getPaletteColor(3))
-	end 
-	
-    -- refresh the palette
-    drawPaletteFrame()    
-    
-    -- reset the viewport
-    setTopView(true)
-    setLayer(1)
-    drawLayer()	    
+  end
+
+  local projector = trytofind('hologram')
+  if projector ~= nil then
+    -- refresh textboxes
+    tb_red.value = dec2rgb(projector.getPaletteColor(1))
+    tb_green.value = dec2rgb(projector.getPaletteColor(2))
+    tb_blue.value = dec2rgb(projector.getPaletteColor(3))
+  end
+
+  -- refresh the palette
+  drawPaletteFrame()
+
+  -- reset the viewport
+  setTopView(true)
+  setLayer(1)
+  drawLayer()
 end
 
 
@@ -1205,7 +1211,7 @@ local function delay(active) if active then return 0.02 else return 2.0 end end
 while running do
   local name, add, x, y, button = event.pull(delay(brush.moving))
 
-  if name == 'key_down' then 
+  if name == 'key_down' then
     -- if 'Q' was pressed - the quit app
     if y == keys.EXIT then
       exit()
@@ -1217,7 +1223,7 @@ while running do
       clearLayer()
     end
   elseif name == 'touch' or name == 'drag' then
-  -- rerender the screen after message box
+    -- rerender the screen after message box
     if repaint then drawLayer()
     else
       if name == 'touch' then
@@ -1237,7 +1243,7 @@ while running do
           end
         end
       end
-      
+
       -- "render"
       local dx, dy
       if FULLSIZE then

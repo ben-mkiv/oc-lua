@@ -1,5 +1,5 @@
 require("package").loaded.guiH = nil
-require("guiH")
+require("networkBiosClient/guiH")
 
 gpu = require("component").gpu
 
