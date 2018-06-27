@@ -27,7 +27,7 @@ ai.getSpeed = function()
   return ai.curSpeed
 end
 
-dP = 42006
+dP = 42069
 
 modem.open(dP)
 

@@ -79,7 +79,7 @@ while true do local evt,_,_,_,_,cmd=computer.pullSignal()
 if evt=="modem_message" then return load(cmd) end end end
 --init
 m.open(dP)
-if component.list("robot")() then while n.getFacing() ~= 2 do d.turn(true) end end
+if component.list("robot")() and n ~= nil then while n.getFacing() ~= 2 do d.turn(true) end end
 --mainloop
 while true do
 local r1,r2=pcall(function()

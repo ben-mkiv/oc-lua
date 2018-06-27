@@ -55,6 +55,8 @@ function toggleOutput(output)
 end
 
 function addRedstoneOutput(address, side, name, outputStatus)
+    if name == "" or name == '\n' or not name then return; end
+
     local output = {}
     output.device = address
     output.side = side
