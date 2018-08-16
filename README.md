@@ -9,5 +9,5 @@ wirelessRedstone with microControllers:
 DraconicEvolution Infusion Crafting / ActuallyAdditions Empowerer
 `pastebin run uPrQxVwR`
 
-Mekanism Reactor / Energy Matrix HUD for (ben-mkiv) OpenGlasses 3.x
+Mekanism Reactor / Energy Matrix HUD for OpenGlasses 2.x
 `pastebin run 9NJ3E5kG`
