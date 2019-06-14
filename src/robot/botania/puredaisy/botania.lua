@@ -6,6 +6,14 @@ local inventory = component.inventory_controller
 
 local materialSlot = 4
 
+--local inputLivingrock = "minecraft:stone"
+--local inputLivingwood = "minecraft:log"
+
+local inputLivingrock = "thaumcraft:stone_arcane"
+local inputLivingwood = "astralsorcery:blockinfusedwood"
+
+
+
 function placeBlock(side)
 	robot.select(materialSlot)
 	robot.place(side)
@@ -48,7 +56,7 @@ function refillInventory(side)
 	while slot < size and robot.count(materialSlot) < 1 do
 	  local stack = inventory.getStackInSlot(side, slot)
 	  if stack ~= nil then
-		if stack.name == "minecraft:stone" or stack.name == "minecraft:log" then
+		if stack.name == inputLivingrock or stack.name == inputLivingwood then
 			inventory.suckFromSlot(side, slot, 64)
 		end
 	  end

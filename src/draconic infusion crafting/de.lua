@@ -13,10 +13,10 @@ upgradeRecipes = {}
 upgradeRecipes_compressed = {} 
 upgradeKeys = {} 
 inventory = {} 
-inventoryAll = {} 
+inventoryAll = {}
 
 config = {}
-config.target = "actuallyadditions"
+config.target = "draconicevolution"
 config.devices =  {}
 		
 config.devices.redstone = { 
@@ -44,7 +44,7 @@ gui = clone(hazeUI)
 gui.gpu = component.gpu 
 gui.super = gui
 gui.self = gui
-titleBar = gui:addButton(1, 1, 80, 1, "draconic infusion crafting, starting up...", "all", 0x282828, 0xFFB000, "left")
+titleBar = gui:addButton(1, 1, 80, 1, "crafting, starting up...", "all", 0x282828, 0xFFB000, "left")
 
 function closeTool()
 	gui.gpu.setBackground(0x0)

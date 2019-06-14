@@ -1,8 +1,6 @@
-dP=42001
-range=128
+dP=42069
 --modem
 m=component.proxy(component.list("modem")())
-r=component.proxy(component.list("redstone")())
 --serialization
 local ser={}
 local local_pairs=function(tbl)
@@ -42,35 +40,28 @@ function ser.seril(value)
             ts[v]=nil
             return (r or "{").."}"
         else error("ut "..t) end end
-    return s(value, 1)
-end
-function unserialize(data)
+    return s(value, 1) end
+function ser.unser(data)
     checkArg(1, data, "string")
-    local result, reason = load("return " .. data, "=data", _, {math={huge=math.huge}})
-    if not result then return nil, reason end
+    local result, reason = load("return " .. data, "=data", nil, {math={huge=math.huge}})
+    if not result then return nil, reason; end
     local ok, output = pcall(result)
-    if not ok then return nil, output end
+    if not ok then return nil, output; end
     return output
 end
 --remote replyfunc
-local function respond(...) local args = table.pack(...) pcall(function() m.broadcast(dP,table.unpack(args)) end) end
+local function respond(...)
+    local args=table.pack(...)
+    pcall(function()m.broadcast(dP,table.unpack(args)) end) end
 local function receive()
-    while true do
-        local tmp = select(6, computer.pullSignal("modem_message"))
-        if tmp and tmp ~= "initRSNetwork" then
-            local data = unserialize(tmp)
-            if data.a == m.address or data.a == "all" then return load(data.c) end
-        end
-    end end
+    while true do local evt,_,_,_,_,cmd=computer.pullSignal()
+        if evt=="modem_message" then return load(cmd) end end end
 --init
-m.setWakeMessage("initRSNetwork")
 m.open(dP)
-m.setStrength(range)
---m.broadcast(dP, '{init="'..m.address..'"}')
+
 --mainloop
 while true do
-    local r1,r2=pcall(function() local r1,r2=receive()
-        if r1 then respond(ser.seril({r1()})) end end)
-    if not r1 and r2 then respond(ser.seril({r2})) end
+    local r1,r2=pcall(function()
+        local r1,r2=receive()
+            if r1 then respond(ser.seril(r1())) end end)
 end
-m.close()

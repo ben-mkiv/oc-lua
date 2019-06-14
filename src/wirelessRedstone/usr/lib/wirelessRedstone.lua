@@ -3,8 +3,11 @@ modem = component.modem
 event = require("event")
 sides = require("sides")
 serialization = require("serialization")
+local range = 128
+local port = 42001
 
-modem.open(42001) -- Redstone network
+modem.open(port) -- Redstone network
+modem.setStrength(range)
 
 config = {}
 devices = {}
@@ -21,7 +24,7 @@ function sendC(ad, cmd, waitReply)
     data.a = ad
     data.c = cmd
 
-    modem.send(ad, 42001, serialization.serialize(data))
+    modem.send(ad, port, serialization.serialize(data))
 
     if waitReply ~= false then
         return modemMessageEvent(event.pull(3, "modem_message"))
@@ -32,7 +35,7 @@ function sendCB(cmd, waitReply)
     local data = {}
     data.a = "all"
     data.c = cmd
-    modem.broadcast(42001, serialization.serialize(data))
+    modem.broadcast(port, serialization.serialize(data))
     if waitReply ~= false then
         return modemMessageEvent(event.pull(3, "modem_message"))
     end
@@ -43,7 +46,7 @@ function sendCBM(cmd, waitReply)
     local data = {}
     data.a = "all"
     data.c = cmd
-    modem.broadcast(42001, serialization.serialize(data))
+    modem.broadcast(port, serialization.serialize(data))
 
     local messages = {}
 
@@ -82,7 +85,7 @@ function setOutput(device, side, state)
 end
 
 function wakeup()
-    modem.broadcast(42001, "initRSNetwork")
+    modem.broadcast(port, "initRSNetwork")
 end
 
 

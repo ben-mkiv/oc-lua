@@ -29,12 +29,13 @@ function clone (t) -- deep-copy a table
 function hazeUI:drawStatusbar(x, y, w, h, s, j, prefix)
     perc = math.floor((100/s) * j)
     bar = 1+math.floor( 0.5 + (((w-2) / s) * j))
-    self.gpu.fill(x, y, w, h+1, " ");
+    if prefix ~= nil then self.gpu.fill(x, y, w, h+1, " ");
+    else self.gpu.fill(x, y, w, h, " "); end
     self.gpu.set(x, y, "[")
     self.gpu.set(x+w, y, "]")
     self.gpu.fill(x+1, y, bar, 1, "#");
     self.gpu.fill(x+1+bar, y, (w-bar-1), 1, "-");
-    self.gpu.set(x, y+1, perc.."% ".. prefix.." "..j.." of "..s)
+    if prefix ~= nil then self.gpu.set(x, y+1, perc.."% ".. prefix.." "..j.." of "..s) end
 end
 
 function hazeUI:drawElement(el)
@@ -188,13 +189,13 @@ function hazeUI:removeSubGroup(group, name)
         end end end
 
 function hazeUI:list(title, text, list, callback, colorHeader, colorsList, preSelect)
-    if colorHeader == nil then
+    if colorHeader == nil or not colorHeader then
         colorHeader = {}
         colorHeader.title = { bg = 0x0097FF, fg = 0x282828 }
         colorHeader.text  = { bg = 0xFFDB00, fg = 0x282828 }
     end
 
-    if colorsList == nil then
+    if colorsList == nil or not colorsList then
         colorsList = {}
         table.insert(colorsList, { bg = 0xFFDF00, fg = 0x282828 })
         table.insert(colorsList, { bg = 0xFFA200, fg = 0x282828 })
